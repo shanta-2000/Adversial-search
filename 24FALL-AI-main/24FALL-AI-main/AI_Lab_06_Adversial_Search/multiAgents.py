@@ -202,7 +202,44 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
         Returns the minimax action using self.depth and self.evaluationFunction
         """
-        
+        def alpha_beta_pruning(state, depth, agent_index, alpha, beta):
+            # If depth is 0 or the game state is terminal, return the evaluation score
+            if depth == 0 or state.isWin() or state.isLose():
+                return self.evaluationFunction(state)
+
+            # Maximize for Pacman (agent_index = 0)
+            if agent_index == 0:
+                value = float('-inf')
+                best_action = None
+                for action in state.getLegalActions(agent_index):
+                    successor = state.generateSuccessor(agent_index, action)
+                    score = alpha_beta_pruning(successor, depth, 1, alpha, beta)
+                    if score > value:
+                        value = score
+                        best_action = action
+                    alpha = max(alpha, value)
+                    if beta <= alpha:
+                        break  # Beta cut-off
+                if depth == self.depth:  # Return action at root level
+                    return best_action
+                return value
+
+            # Minimize for ghosts
+            else:
+                value = float('inf')
+                next_agent = (agent_index + 1) % state.getNumAgents()
+                next_depth = depth - 1 if next_agent == 0 else depth
+                for action in state.getLegalActions(agent_index):
+                    successor = state.generateSuccessor(agent_index, action)
+                    score = alpha_beta_pruning(successor, next_depth, next_agent, alpha, beta)
+                    value = min(value, score)
+                    beta = min(beta, value)
+                    if beta <= alpha:
+                        break  # Alpha cut-off
+                return value
+
+        # Start the alpha-beta pruning process
+        return alpha_beta_pruning(gameState, self.depth, 0, float('-inf'), float('inf'))
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
