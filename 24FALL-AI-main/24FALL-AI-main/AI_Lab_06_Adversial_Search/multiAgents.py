@@ -276,14 +276,25 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         "*** YOUR CODE HERE ***"
         util.raiseNotDefined()
 
-def betterEvaluationFunction(currentGameState):
-    """
-      Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
-      evaluation function (question 5).
+def betterEvaluationFunction(gameState):
+    pacman_pos = gameState.getPacmanPosition()
+    food = gameState.getFood().asList()
+    ghost_states = gameState.getGhostStates()
 
-      DESCRIPTION: <write something here so we know what you did>
-    """
-    "*** YOUR CODE HERE ***"
+    # Base score
+    score = gameState.getScore()
+
+    # Reward proximity to food
+    food_distances = [manhattanDistance(pacman_pos, food_pos) for food_pos in food]
+    score += 10 / (min(food_distances) + 1) if food_distances else 0
+
+    # Penalize proximity to active ghosts
+    for ghost in ghost_states:
+        ghost_distance = manhattanDistance(pacman_pos, ghost.getPosition())
+        if ghost.scaredTimer == 0:  # Only consider active ghosts
+            score -= 200 / (ghost_distance + 1)
+
+    return score
     util.raiseNotDefined()
 
 # Abbreviation
