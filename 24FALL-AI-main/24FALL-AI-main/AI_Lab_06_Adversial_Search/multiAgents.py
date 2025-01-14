@@ -195,51 +195,71 @@ class MinimaxAgent(MultiAgentSearchAgent):
     
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
-    Your minimax agent with alpha-beta pruning.
+    Optimized AlphaBetaAgent with improved move ordering and evaluation.
     """
 
     def getAction(self, gameState):
         """
-        Returns the minimax action using self.depth and self.evaluationFunction
+        Returns the best action using alpha-beta pruning and the current evaluation function.
         """
-        def alpha_beta_pruning(state, depth, agent_index, alpha, beta):
-            # If depth is 0 or the game state is terminal, return the evaluation score
+
+        def alpha_beta(state, depth, agentIndex, alpha, beta):
+            # Terminal or depth condition
             if depth == 0 or state.isWin() or state.isLose():
                 return self.evaluationFunction(state)
 
-            # Maximize for Pacman (agent_index = 0)
-            if agent_index == 0:
+            if agentIndex == 0:  # Pacman's turn (maximize)
                 value = float('-inf')
                 best_action = None
-                for action in state.getLegalActions(agent_index):
-                    successor = state.generateSuccessor(agent_index, action)
-                    score = alpha_beta_pruning(successor, depth, 1, alpha, beta)
+                for action in self.getOrderedActions(state, agentIndex):
+                    successor = state.generateSuccessor(agentIndex, action)
+                    score = alpha_beta(successor, depth, 1, alpha, beta)
                     if score > value:
                         value = score
                         best_action = action
                     alpha = max(alpha, value)
                     if beta <= alpha:
                         break  # Beta cut-off
-                if depth == self.depth:  # Return action at root level
+                if depth == self.depth:  # Return the action at the root
                     return best_action
                 return value
-
-            # Minimize for ghosts
-            else:
+            else:  # Ghosts' turn (minimize)
                 value = float('inf')
-                next_agent = (agent_index + 1) % state.getNumAgents()
+                next_agent = (agentIndex + 1) % state.getNumAgents()
                 next_depth = depth - 1 if next_agent == 0 else depth
-                for action in state.getLegalActions(agent_index):
-                    successor = state.generateSuccessor(agent_index, action)
-                    score = alpha_beta_pruning(successor, next_depth, next_agent, alpha, beta)
+                for action in self.getOrderedActions(state, agentIndex):
+                    successor = state.generateSuccessor(agentIndex, action)
+                    score = alpha_beta(successor, next_depth, next_agent, alpha, beta)
                     value = min(value, score)
                     beta = min(beta, value)
                     if beta <= alpha:
                         break  # Alpha cut-off
                 return value
 
-        # Start the alpha-beta pruning process
-        return alpha_beta_pruning(gameState, self.depth, 0, float('-inf'), float('inf'))
+        # Start alpha-beta pruning at the root
+        return alpha_beta(gameState, self.depth, 0, float('-inf'), float('inf'))
+
+    def getOrderedActions(self, state, agentIndex):
+        """
+        Orders actions to improve pruning efficiency.
+        Prioritizes actions based on the evaluation of their successors.
+        """
+        actions = state.getLegalActions(agentIndex)
+        if not actions:
+            return []
+
+        # Evaluate successors and sort by their heuristic score
+        scored_actions = []
+        for action in actions:
+            successor = state.generateSuccessor(agentIndex, action)
+            score = self.evaluationFunction(successor)
+            scored_actions.append((score, action))
+
+        # Pacman (maximize) sorts in descending order, ghosts (minimize) in ascending
+        reverse = agentIndex == 0  # Pacman maximizes, ghosts minimize
+        scored_actions.sort(key=lambda x: x[0], reverse=reverse)
+
+        return [action for _, action in scored_actions]
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
